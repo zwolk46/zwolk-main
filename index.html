@@ -5,6 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>zwolk</title>
   <meta name="description" content="A small collection of web apps by zwolk.">
+  <script>
+(function(){
+  var HASH='a8d3e59cbce261b29855dcd76f61995bb600572c1d37534d222c8337a7d79671';
+  var KEY='zwolk_pw_ok';
+  var cookieDomain=/(^|\.)zwolk\.com$/.test(location.hostname)?'; domain=.zwolk.com':'';
+  function hasAuth(){
+    try{if(localStorage.getItem(KEY)==='1')return true;}catch(e){}
+    return document.cookie.split(';').some(function(c){return c.trim().indexOf(KEY+'=1')===0;});
+  }
+  function setAuth(){
+    try{localStorage.setItem(KEY,'1');}catch(e){}
+    document.cookie=KEY+'=1; path=/; max-age=31536000; samesite=lax'+cookieDomain;
+  }
+  if(hasAuth())return;
+  var hideStyle=document.createElement('style');
+  hideStyle.id='__zwolk_gate_hide';
+  hideStyle.textContent='body{visibility:hidden!important}';
+  (document.head||document.documentElement).appendChild(hideStyle);
+  async function sha256Hex(s){
+    var buf=new TextEncoder().encode(s);
+    var digest=await crypto.subtle.digest('SHA-256',buf);
+    return Array.from(new Uint8Array(digest)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+  function mount(){
+    var overlay=document.createElement('div');
+    overlay.id='__zwolk_gate';
+    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#0b0d11;color:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;visibility:visible';
+    overlay.innerHTML='<form id="__zwolk_gate_form" style="display:flex;flex-direction:column;gap:1rem;align-items:center;max-width:320px;width:90%;padding:2rem"><h1 style="font-weight:500;font-size:1.25rem;letter-spacing:-0.01em;margin:0">Password required</h1><input id="__zwolk_gate_input" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;padding:0.9rem 1rem;font-size:1rem;font-family:inherit;color:#f5f7fa;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;outline:none" /><button type="submit" style="padding:0.8rem 2.5rem;font-size:1rem;font-family:inherit;font-weight:500;color:#0b0d11;background:#f5f7fa;border:none;border-radius:999px;cursor:pointer">Unlock</button><p id="__zwolk_gate_err" style="margin:0;min-height:1em;font-size:0.85rem;color:#f08080"></p></form>';
+    document.body.appendChild(overlay);
+    var form=document.getElementById('__zwolk_gate_form');
+    var input=document.getElementById('__zwolk_gate_input');
+    var err=document.getElementById('__zwolk_gate_err');
+    input.focus();
+    form.addEventListener('submit',async function(e){
+      e.preventDefault();
+      err.textContent='';
+      try{
+        var h=await sha256Hex(input.value);
+        if(h===HASH){
+          setAuth();
+          hideStyle.remove();
+          overlay.remove();
+        }else{
+          err.textContent='Incorrect password';
+          input.select();
+        }
+      }catch(ex){
+        err.textContent=ex.message||'Error';
+      }
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',mount);
+  }else{
+    mount();
+  }
+})();
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
